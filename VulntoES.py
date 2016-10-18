@@ -44,6 +44,8 @@ class NessusES:
                                 "raw": { "type": "string", "index": "not_analyzed" } } },
                             "svcid": { "type": "string", "fields": {
                                 "raw": { "type": "string", "index": "not_analyzed" } } },
+                            "vulnid": { "type": "string", "fields": {
+                                "raw": { "type": "string", "index": "not_analyzed" } } },
                             "synopsis": { "type": "string", "fields": {
                                 "raw": { "type": "string", "index": "not_analyzed" } } },
                             "solution": { "type": "string", "fields": {
@@ -160,7 +162,25 @@ class NessusES:
                                     port = dict_item['port']
                                 except KeyError:
                                     port = 0
-                                host_item['svcid'] = "%s/%s/%d" % (ip, protocol, port)
+
+                                try:
+                                    scanner = dict_item['scanner']
+                                except KeyError:
+                                    scanner = "-"
+
+                                try:
+                                    plugin = dict_item['pluginID']
+                                except KeyError:
+                                    plugin = "-"
+
+                                try:
+                                    dt = datetime.strptime(host_item['time'], "%Y/%m/%d %H:%M:%S")
+                                except KeyError:
+                                    dt = datetime.now()
+                                time = dt.strftime("%Y%m%d%H%M")
+
+                                host_item['svcid'] = "%s:%s:%d" % (ip, protocol, port)
+                                host_item['vulnid'] = "%s:%s:%d:%s:%s:%s" % (ip, protocol, port, scanner, plugin, time)
 
                                 for name in self.static_fields:
                                     dict_item[name] = self.static_fields[name]
