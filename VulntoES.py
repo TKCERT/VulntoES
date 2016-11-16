@@ -50,6 +50,8 @@ class NessusES:
                                 "raw": { "type": "string", "index": "not_analyzed" } } },
                             "solution": { "type": "string", "fields": {
                                 "raw": { "type": "string", "index": "not_analyzed" } } },
+                            "state": { "type": "string", "index": "not_analyzed" },
+                            "close_reason": { "type": "string", "index": "not_analyzed" },
                             } }
                 mappings = { "mappings": { "vuln": vulnmapping } }
                 try:    # try to create index
