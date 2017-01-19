@@ -20,39 +20,70 @@ import re
 class NessusES:
 	"This class will parse an Nessus v2 XML file and send it to Elasticsearch"
 
-	def __init__(self, input_file,es_ip,index_name, static_fields):
+	def __init__(self, input_file,es_ip,index_name, static_fields, legacy_mapping):
 		self.input_file = input_file
 		self.tree = self.__importXML()
 		self.root = self.tree.getroot()
 		self.es = Elasticsearch([es_ip])
 		self.index_name = index_name
                 self.static_fields = static_fields
-                vulnmapping = { "properties": {
-                            "pluginName": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "ip": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "risk_factor": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "severity": { "type": "integer" },
-                            "port": { "type": "integer" },
-                            "pluginFamily": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "plugin_type": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "svc_name": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "svcid": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "vulnid": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "synopsis": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "solution": { "type": "string", "fields": {
-                                "raw": { "type": "string", "index": "not_analyzed" } } },
-                            "state": { "type": "string", "index": "not_analyzed" },
-                            "close_reason": { "type": "string", "index": "not_analyzed" },
-                            } }
+                if legacy_mapping:
+                    vulnmapping = { "properties": {
+                                "pluginName": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "ip": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "risk_factor": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "severity": { "type": "integer" },
+                                "port": { "type": "integer" },
+                                "pluginFamily": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "plugin_type": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "svc_name": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "svcid": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "vulnid": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "synopsis": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "solution": { "type": "string", "fields": {
+                                    "raw": { "type": "string", "index": "not_analyzed" } } },
+                                "state": { "type": "string", "index": "not_analyzed" },
+                                "close_reason": { "type": "string", "index": "not_analyzed" },
+                                } }
+                else:
+                    vulnmapping = { "properties": {
+                                "pluginName": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "ip": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "protocol": { "type": "keyword" },
+                                "scanner": { "type": "keyword" },
+                                "pluginID": { "type": "keyword" },
+                                "risk_factor": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "severity": { "type": "integer" },
+                                "port": { "type": "integer" },
+                                "pluginFamily": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "plugin_type": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "svc_name": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "svcid": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "vulnid": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "synopsis": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "solution": { "type": "text", "fields": {
+                                    "raw": { "type": "keyword" } } },
+                                "state": { "type": "keyword" },
+                                "close_reason": { "type": "keyword" },
+                                } }
                 mappings = { "mappings": { "vuln": vulnmapping } }
                 try:    # try to create index
                     self.es.indices.create(index=index_name, body=json.dumps(mappings))
@@ -386,8 +417,8 @@ def usage():
 		print "Usage: VulntoES.py [-i input_file | input_file=input_file] [-e elasticsearch_ip | es_ip=es_ip_address] [-I index_name] [-r report_type | --report_type=type] [-s name=value] [-h | --help]"
 def main():
 
-        letters = 'i:I:e:r:s:h' #input_file, index_name es_ip_address, report_type, create_sql, create_xml, help
-	keywords = ['input-file=', 'index_name=', 'es_ip=','report_type=', 'static=', 'help' ]
+        letters = 'i:I:e:r:l:s:h' #input_file, index_name es_ip_address, report_type, legacy index mappings, static fields, help
+	keywords = ['input-file=', 'index_name=', 'es_ip=','report_type=', 'legacy', 'static=', 'help' ]
 	try:
 		opts, extraparams = getopt.getopt(sys.argv[1:], letters, keywords)
 	except getopt.GetoptError, err:
@@ -398,6 +429,7 @@ def main():
 	es_ip = ''
 	report_type = ''
 	index_name = ''
+        legacy_mapping = False
         static_fields = dict()
 
 	for o,p in opts:
@@ -409,6 +441,8 @@ def main():
 	  	es_ip=p
 	  elif o in ['-I', '--index_name=']:
 		index_name=p
+          elif o in ['-l', '--legacy']:
+              legacy_mapping = True
           elif o in ['-s', '--static']:
                 name, value = p.split("=", 1)
                 static_fields[name] = value
@@ -429,7 +463,7 @@ def main():
 
 	if report_type.lower() == 'nessus':
 		print "Sending Nessus data to Elasticsearch"
-		np = NessusES(in_file,es_ip,index_name, static_fields)
+		np = NessusES(in_file,es_ip,index_name, static_fields, legacy_mapping)
 		np.toES()
 	elif report_type.lower() == 'nikto':
 		print "Sending Nikto data to Elasticsearch"
