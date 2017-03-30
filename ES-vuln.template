@@ -20,6 +20,18 @@
             }
           }
         },
+        "protocol": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "scanner": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "pluginID": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
         "risk_factor": {
           "type": "string",
           "fields": {
